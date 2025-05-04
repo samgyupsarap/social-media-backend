@@ -1,0 +1,53 @@
+version: "2"
+sql:
+  - engine: "mysql"
+    queries:
+      - "db/query/insert.sql"
+      - "db/query/update.sql"
+      - "db/query/select.sql"
+    schema: "db/migration/schema.sql"
+    gen:
+      go:
+        package: "socmed"
+        out: "db/socmed"
+        emit_json_tags: true
+        overrides:
+          - db_type: "varchar"
+            nullable: true
+            go_type:
+              import: "github.com/guregu/null/v5"
+              package: "null"
+              type: "String"
+              pointer: false
+              slice: false
+          - db_type: "enum"
+            nullable: true
+            go_type:
+              import: "github.com/guregu/null/v5"
+              package: "null"
+              type: "String"
+              pointer: false
+              slice: false
+          - db_type: "char"
+            nullable: true
+            go_type:
+              import: "github.com/guregu/null/v5"
+              package: "null"
+              type: "String"
+              pointer: false
+              slice: false
+          - db_type: "int"
+            nullable: true
+            unsigned: true
+            go_type:
+              import: "github.com/guregu/null/v5"
+              package: "null"
+              type: "Int32"
+              pointer: false
+              slice: false
+          - db_type: "blob"
+            nullable: true
+            go_type:
+              type: "[]byte"
+              pointer: false
+              slice: true
