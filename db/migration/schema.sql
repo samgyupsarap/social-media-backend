@@ -1,5 +1,5 @@
 CREATE TABLE `comments` (
-  `comment_uuid` int NOT NULL,
+  `comment_uuid` varchar(36) NOT NULL,
   `comment_content` varchar(1000) DEFAULT NULL,
   `user_uuid` varchar(36) DEFAULT NULL,
   `post_uuid` varchar(36) DEFAULT NULL,
@@ -9,6 +9,7 @@ CREATE TABLE `comments` (
   PRIMARY KEY (`comment_uuid`),
   UNIQUE KEY `comment_uuid_UNIQUE` (`comment_uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 
 
 CREATE TABLE `posts` (

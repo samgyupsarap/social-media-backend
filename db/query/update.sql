@@ -6,3 +6,6 @@ UPDATE posts SET post_content = ?, post_tags = ? WHERE post_uuid = ?;
 
 -- name: UpdatePostLikes :exec
 UPDATE posts SET likes = ? WHERE post_uuid = ?;
+
+-- name: UpdateComment :exec
+UPDATE comments SET comment_content = ? WHERE comment_uuid = ?;

@@ -5,3 +5,7 @@ VALUES (?, ?, ?, ?, ?, ?);
 -- name: CreatePost :exec
 INSERT INTO posts (post_uuid, post_content, post_tags, user_uuid, likes)
 VALUES (?, ?, ?, ?, ?);
+
+-- name: CreateComment :exec
+INSERT INTO comments (comment_uuid, comment_content, user_uuid, post_uuid)
+VALUES (?, ?, ?, ?);

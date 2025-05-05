@@ -37,4 +37,12 @@ SELECT
     likes
 FROM posts; 
 
+-- name: ShowComments :many
+SELECT 
+    comment_uuid,
+    comment_content,
+    user_uuid,
+    post_uuid
+FROM comments
+WHERE post_uuid = ?;
     
