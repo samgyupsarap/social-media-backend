@@ -14,7 +14,7 @@ CREATE TABLE `comments` (
 CREATE TABLE `posts` (
   `post_uuid` varchar(36) NOT NULL,
   `post_content` longtext,
-  `post_tags` enum('Gaming, Trending, Food, Fashion, Travel') DEFAULT NULL,
+  `post_tags` varchar(200) DEFAULT NULL,
   `user_uuid` varchar(45) DEFAULT NULL,
   `likes` int DEFAULT NULL,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
@@ -22,6 +22,7 @@ CREATE TABLE `posts` (
   PRIMARY KEY (`post_uuid`),
   UNIQUE KEY `post_uuid_UNIQUE` (`post_uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 
 
 CREATE TABLE `users` (

@@ -5,6 +5,7 @@ sql:
       - "db/query/insert.sql"
       - "db/query/update.sql"
       - "db/query/select.sql"
+      - "db/query/delete.sql"
     schema: "db/migration/schema.sql"
     gen:
       go:
@@ -38,7 +39,6 @@ sql:
               slice: false
           - db_type: "int"
             nullable: true
-            unsigned: true
             go_type:
               import: "github.com/guregu/null/v5"
               package: "null"
@@ -51,3 +51,27 @@ sql:
               type: "[]byte"
               pointer: false
               slice: true
+          - db_type: "text"
+            nullable: true
+            go_type:
+              import: "github.com/guregu/null/v5"
+              package: "null"
+              type: "String"
+              pointer: false
+              slice: false
+          - db_type: "integer"
+            nullable: true
+            go_type:
+              import: "github.com/guregu/null/v5"
+              package: "null"
+              type: "Int"
+              pointer: false
+              slice: false
+          - db_type: "longtext"
+            nullable: true
+            go_type:
+              import: "github.com/guregu/null/v5"
+              package: "null"
+              type: "String"
+              pointer: false
+              slice: false
