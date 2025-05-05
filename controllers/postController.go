@@ -63,7 +63,7 @@ func (pc *PostController) GetPosts(w http.ResponseWriter, r *http.Request) {
 func (pc *PostController) UpdatePost(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&post); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, "Invalid update request body", http.StatusBadRequest)
 		return
 	}
 
@@ -94,4 +94,24 @@ func (pc *PostController) DeletePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.JSONResponse(w, http.StatusOK, map[string]string{"message": "Post deleted successfully"})
+}
+
+func (pc *PostController) UpdateLike(w http.ResponseWriter, r *http.Request) {
+
+	if err := json.NewDecoder(r.Body).Decode(&post); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	params := socmed.UpdatePostLikesParams{
+		Likes:    null.Int32From(int32(post.Likes)),
+		PostUuid: post.PostUuid,
+	}
+
+	if err := pc.queries.UpdatePostLikes(context.Background(), params); err != nil {
+		http.Error(w, "Failed to update like", http.StatusInternalServerError)
+		return
+	}
+
+	utils.JSONResponse(w, http.StatusOK, map[string]string{"message": "Like updated successfully"})
 }
