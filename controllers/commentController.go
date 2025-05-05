@@ -63,6 +63,25 @@ func (cc *CommentController) GetComments(w http.ResponseWriter, r *http.Request)
 	utils.JSONResponse(w, http.StatusOK, comments)
 }
 
+func (cc *CommentController) UpdateComment(w http.ResponseWriter, r *http.Request) {
+	if err := json.NewDecoder(r.Body).Decode(&comment); err != nil {
+		http.Error(w, "Invalid update request body", http.StatusBadRequest)
+		return
+	}
+
+	params := socmed.UpdateCommentParams{
+		CommentUuid:    null.StringFrom(comment.CommentUuid).String,
+		CommentContent: null.StringFrom(comment.CommentContent),
+	}
+
+	if err := cc.queries.UpdateComment(context.Background(), params); err != nil {
+		http.Error(w, "Failed to update comment", http.StatusInternalServerError)
+		return
+	}
+
+	utils.JSONResponse(w, http.StatusOK, map[string]string{"message": "Comment updated successfully"})
+}
+
 func (cc *CommentController) DeleteComment(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&comment); err != nil {
 		http.Error(w, "Invalid delete request body", http.StatusBadRequest)

@@ -60,7 +60,7 @@ func (pc *PostController) GetPosts(w http.ResponseWriter, r *http.Request) {
 	utils.JSONResponse(w, http.StatusOK, posts)
 }
 
-func (pc *PostController) UpdatePosts(w http.ResponseWriter, r *http.Request) {
+func (pc *PostController) UpdatePost(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&post); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -81,7 +81,7 @@ func (pc *PostController) UpdatePosts(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (pc *PostController) DeletePosts(w http.ResponseWriter, r *http.Request) {
+func (pc *PostController) DeletePost(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&post); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
