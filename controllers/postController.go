@@ -35,7 +35,7 @@ func (pc *PostController) CreatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := socmed.CreatePostParams{
-		PostUuid:    post.PostUuid,
+		PostUuid:    utils.GenerateUUID(),
 		UserUuid:    null.StringFrom(post.UserUuid),
 		PostContent: null.StringFrom(post.PostContent),
 		PostTags:    null.StringFrom(post.PostTags),
