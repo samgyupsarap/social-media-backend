@@ -3,17 +3,20 @@ package controllers
 import (
 	"backend/db/socmed"
 	"backend/utils"
+	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/guregu/null/v5"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/microsoft"
 )
 
 type MicrosoftController struct {
@@ -27,41 +30,90 @@ type MicrosoftUser struct {
 	Email       string `json:"userPrincipalName"`
 }
 
+func generateCodeVerifier() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return base64.RawURLEncoding.EncodeToString(b)
+}
+
+func generateCodeChallenge(verifier string) string {
+	h := sha256.New()
+	h.Write([]byte(verifier))
+	return base64.RawURLEncoding.EncodeToString(h.Sum(nil))
+}
+
 func NewMicrosoftController(queries *socmed.Queries) *MicrosoftController {
-	config := &oauth2.Config{
-		ClientID:     os.Getenv("MICROSOFT_CLIENT_ID"),
-		ClientSecret: os.Getenv("MICROSOFT_CLIENT_SECRET"),
-		RedirectURL:  os.Getenv("MICROSOFT_REDIRECT_URL"),
-		Scopes: []string{
-			"User.Read",
-			"offline_access",
-		},
-		Endpoint: microsoft.AzureADEndpoint(os.Getenv("MICROSOFT_TENANT_ID")),
-	}
-	return &MicrosoftController{
-		config:  config,
-		queries: queries,
-	}
+    config := &oauth2.Config{
+        ClientID:     os.Getenv("MICROSOFT_CLIENT_ID"),
+        ClientSecret: os.Getenv("MICROSOFT_CLIENT_SECRET"),
+        RedirectURL:  os.Getenv("MICROSOFT_REDIRECT_URI"),
+        Scopes: []string{
+            "https://graph.microsoft.com/User.Read",
+            "openid",
+            "profile",
+            "email",
+        },
+        Endpoint: oauth2.Endpoint{
+            AuthURL:  "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+            TokenURL: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+        },
+    }
+    return &MicrosoftController{
+        config:  config,
+        queries: queries,
+    }
 }
 
 func (mc *MicrosoftController) LoginHandler(w http.ResponseWriter, r *http.Request) {
-	url := mc.config.AuthCodeURL("state")
+	// Generate PKCE verifier and challenge
+	verifier := generateCodeVerifier()
+	challenge := generateCodeChallenge(verifier)
+
+	// Store verifier in cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "code_verifier",
+		Value:    verifier,
+		Path:     "/",
+		MaxAge:   int(time.Hour.Seconds()),
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	// Add PKCE parameters to auth URL
+	opts := []oauth2.AuthCodeOption{
+		oauth2.SetAuthURLParam("code_challenge", challenge),
+		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
+	}
+
+	url := mc.config.AuthCodeURL("state", opts...)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
 func (mc *MicrosoftController) CallbackHandler(w http.ResponseWriter, r *http.Request) {
+	// Get stored verifier
+	verifierCookie, err := r.Cookie("code_verifier")
+	if err != nil {
+		http.Error(w, "Verifier not found", http.StatusBadRequest)
+		return
+	}
+
 	code := r.URL.Query().Get("code")
 	if code == "" {
 		http.Error(w, "Code not found", http.StatusBadRequest)
 		return
 	}
 
-	msToken, err := mc.config.Exchange(r.Context(), code)
+	// Exchange code for token with PKCE
+	msToken, err := mc.config.Exchange(r.Context(), code,
+		oauth2.SetAuthURLParam("code_verifier", verifierCookie.Value))
 	if err != nil {
+		fmt.Printf("Token exchange error: %v\n", err)
 		http.Error(w, "Failed to exchange token", http.StatusInternalServerError)
 		return
 	}
 
+	// Get user info from Microsoft Graph
 	client := mc.config.Client(r.Context(), msToken)
 	resp, err := client.Get("https://graph.microsoft.com/v1.0/me")
 	if err != nil {
@@ -82,12 +134,7 @@ func (mc *MicrosoftController) CallbackHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// Here you would typically:
-	// 1. Check if user exists in your database
-	// 2. Create user if they don't exist
-	// 3. Generate a session token
-	// 4. Return the token to the client
-
+	// Check if user exists
 	existingUser, err := mc.queries.SelectUserByEmail(r.Context(), null.StringFrom(user.Email))
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -98,6 +145,7 @@ func (mc *MicrosoftController) CallbackHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	// Create app user
 	appUser := socmed.User{
 		UserUuid: existingUser.UserUuid,
 		Email:    existingUser.Email,
@@ -105,22 +153,14 @@ func (mc *MicrosoftController) CallbackHandler(w http.ResponseWriter, r *http.Re
 		FullName: existingUser.FullName,
 	}
 
+	// Generate JWT token
 	token, err := utils.GenerateToken(appUser)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		return
 	}
 
-	utils.JSONResponse(w, http.StatusOK, map[string]interface{}{
-		"message":  "Login successful",
-		"msToken":  msToken,
-		"token":    token,
-		"uuid":     appUser.UserUuid,
-		"email":    appUser.Email,
-		"username": appUser.UserName,
-		"fullName": appUser.FullName,
-	})
-
+	// Redirect to frontend with user data
 	frontendURL := os.Getenv("FRONTEND_URL")
 	redirectURL := fmt.Sprintf("%s/auth/callback?"+
 		"token=%s&"+

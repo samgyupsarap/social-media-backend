@@ -16,8 +16,13 @@ func SetupRoutes(queries *socmed.Queries) *mux.Router {
 	userHandler := handlers.NewUserHandlerController(queries)
 	commentHandler := handlers.NewCommentHandlerController(queries)
 	postHandler := handlers.NewPostHandlerController(queries)
+	msController := controllers.NewMicrosoftController(queries)
 
 	r.HandleFunc("/api/login", loginController.Login).Methods("POST")
+	auth := r.PathPrefix("/api/auth").Subrouter()
+	auth.HandleFunc("/microsoft/login", msController.LoginHandler).Methods("GET")
+	auth.HandleFunc("/microsoft/callback", msController.CallbackHandler).Methods("GET")
+
 	api := r.PathPrefix("/api").Subrouter()
 	api.Use(middleware.CheckToken())
 
